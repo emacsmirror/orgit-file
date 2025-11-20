@@ -114,6 +114,34 @@ nil   Never create orgit-file links, instead allow file: links."
           (const :tag "Only in magit contexts" use-existing)
           (const :tag "Never use orgit-file links" nil)))
 
+(defcustom orgit-file-export-alist
+  `(("github.com[:/]\\(.+?\\)\\(?:\\.git\\)?$"
+     "https://github.com/%n/blob/%r/%f")
+    ("gitlab.com[:/]\\(.+?\\)\\(?:\\.git\\)?$"
+     "https://gitlab.com/%n/-/blob/%r/%f")
+    ("codeberg.org\\(/\\|:git@\\)\\(.+?\\)\\(?:\\.git\\)?$"
+     "https://codeberg.org/%n/src/commit/%r/%f")
+    ("git.sr.ht[:/]\\(.+?\\)\\(?:\\.git\\)?$"
+     "https://git.sr.ht/%n/tree/%r/item/%f")
+    ("bitbucket.org[:/]\\(.+?\\)\\(?:\\.git\\)?$"
+     "https://bitbucket.org/%n/src/%r/%f"))
+  "Alist used to translate Git URLs to web URLs for file links.
+
+Each entry has the form (REMOTE-REGEXP FILE-TEMPLATE).  If
+REMOTE-REGEXP matches the URL of the chosen remote, then
+FILE-TEMPLATE is used to generate the web URL.
+
+The first submatch of REMOTE-REGEXP must match the repository
+identifier.  The template must contain %n (repository name),
+%r (revision), and %f (file path).
+
+This can be overridden per-repository using:
+    git config orgit.file http://example.com/repo/blob/%r/%f"
+  :group 'orgit-file
+  :type '(repeat (list :tag "Remote template"
+                       (regexp :tag "Remote regexp")
+                       (string :tag "File URL format"))))
+
 ;;; File links
 
 ;;;###autoload
@@ -201,7 +229,7 @@ pattern in the file after opening."
 
 DESC is the link description.  FORMAT is the export backend.
 
-Use `orgit-export-alist' to generate web URLs for known Git
+Use `orgit-file-export-alist' to generate web URLs for known Git
 hosting services.  The remote used is determined by `orgit-remote'
 or the Git variable `orgit.remote'.
 
@@ -226,7 +254,7 @@ the URL cannot be determined."
                                        (template (cl-find-if
                                                   (lambda (elt)
                                                     (string-match (car elt) url))
-                                                  orgit-export-alist)))
+                                                  orgit-file-export-alist)))
                               (format-spec (nth 1 template)
                                            `((?n . ,(match-string 1 url))
                                              (?r . ,rev)

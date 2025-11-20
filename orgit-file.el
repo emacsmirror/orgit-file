@@ -84,6 +84,33 @@ very large repositories with many commits."
   :group 'orgit-file
   :type 'boolean)
 
+(defcustom orgit-file-link-to-file-use-orgit nil
+  "Non-nil means storing a link to a file in a Git repo will use orgit-file links.
+
+The variable can have the following values:
+
+t     Always create an orgit-file link when in a Git repository.
+
+create-if-interactive
+      If `org-store-link' is called directly (interactively, as a user
+      command), create an orgit-file link.  But when doing the job for
+      capture or other non-interactive callers, only use orgit-file if
+      explicitly requested.
+
+use-existing
+      Only create orgit-file links in magit-specific contexts (like
+      magit-blob-mode).  Regular file buffers will fall back to file:
+      links.
+
+nil   Never create orgit-file links, instead allow file: links."
+  :group 'orgit-file
+  :type '(choice
+          (const :tag "Always use orgit-file links in Git repos" t)
+          (const :tag "Create if storing link interactively"
+                 create-if-interactive)
+          (const :tag "Only in magit contexts" use-existing)
+          (const :tag "Never use orgit-file links" nil)))
+
 ;;; File links
 
 ;;;###autoload
@@ -96,7 +123,7 @@ very large repositories with many commits."
                              :complete #'orgit-file-complete-link)))
 
 ;;;###autoload
-(defun orgit-file-store (&optional _interactive?)
+(defun orgit-file-store (&optional interactive?)
   "Store a link to the file in a Magit file or blob buffer.
 
 The link includes the repository, revision, and file path.
@@ -104,34 +131,50 @@ The link includes the repository, revision, and file path.
 When in a `magit-blob-mode' buffer (viewing a historical
 revision), store a link to that specific revision.
 
-When in a regular file buffer within a Git repository, store a
-link to the file at the current HEAD revision.
+The behavior is controlled by `orgit-file-link-to-file-use-orgit'.
+When that variable is nil or doesn't match the current context,
+return nil to allow file: links as an alternative.
+
+With a `\\[universal-argument]' prefix argument, skip storing
+orgit-file link and allow fallback to file: link instead.
+
+Argument INTERACTIVE? indicates whether `org-store-link' was
+called interactively.
 
 Return non-nil if a link was stored, nil otherwise."
   (when-let* ((repo (magit-toplevel)))
-    (let ((file (or (and (derived-mode-p 'magit-blob-mode)
-                         magit-buffer-file-name)
-                    (and buffer-file-name
-                         (magit-file-relative-name))))
-          (rev (or (and (derived-mode-p 'magit-blob-mode)
-                        magit-buffer-revision)
-                   (and buffer-file-name
-                        (magit-rev-parse "HEAD")))))
-      (when (and file rev)
-        (let* ((repo-id (orgit--current-repository))
-               (rev-display (if orgit-file-abbreviate-revisions
-                                (magit-rev-abbrev rev)
-                              rev))
-               (link (format "orgit-file:%s::%s::%s" repo-id rev file))
-               (description (format "%s@%s:%s"
-                                    (file-name-nondirectory file)
-                                    rev-display
-                                    repo-id)))
-          (org-link-store-props
-           :type "orgit-file"
-           :link link
-           :description description)
-          t)))))
+    ;; Skip if prefix arg given
+    (unless current-prefix-arg
+      (let ((in-magit-context (or (bound-and-true-p magit-blob-mode)
+                                  (derived-mode-p 'magit-mode))))
+        (when (or (eq orgit-file-link-to-file-use-orgit t)
+                  (and (eq orgit-file-link-to-file-use-orgit 'create-if-interactive)
+                       interactive?)
+                  (and (eq orgit-file-link-to-file-use-orgit 'use-existing)
+                       in-magit-context))
+          (let ((file (or (and (bound-and-true-p magit-blob-mode)
+                               magit-buffer-file-name)
+                          (and buffer-file-name
+                               (magit-file-relative-name))))
+                (rev (or (and (bound-and-true-p magit-blob-mode)
+                              magit-buffer-revision)
+                         (and buffer-file-name
+                              (magit-rev-parse "HEAD")))))
+            (when (and file rev)
+              (let* ((repo-id (orgit--current-repository))
+                     (rev-display (if orgit-file-abbreviate-revisions
+                                      (magit-rev-abbrev rev)
+                                    rev))
+                     (link (format "orgit-file:%s::%s::%s" repo-id rev file))
+                     (description (format "%s@%s:%s"
+                                          (file-name-nondirectory file)
+                                          rev-display
+                                          repo-id)))
+                (org-link-store-props
+                 :type "orgit-file"
+                 :link link
+                 :description description)
+                t))))))))
 
 ;;;###autoload
 (defun orgit-file-open (path)

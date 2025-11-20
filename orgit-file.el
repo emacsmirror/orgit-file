@@ -108,29 +108,30 @@ When in a regular file buffer within a Git repository, store a
 link to the file at the current HEAD revision.
 
 Return non-nil if a link was stored, nil otherwise."
-  (when-let* ((repo (magit-toplevel))
-              (file (or (and (derived-mode-p 'magit-blob-mode)
-                             magit-buffer-file-name)
-                        (magit-file-relative-name)))
-              (rev (or (and (derived-mode-p 'magit-blob-mode)
-                            magit-buffer-revision)
-                       (and buffer-file-name
-                            (magit-rev-parse "HEAD")))))
-    (let* ((repo-id (orgit--current-repository))
-           (rev-display (if orgit-file-abbreviate-revisions
-                            (magit-rev-abbrev rev)
-                          rev))
-           (link (format "orgit-file:%s::%s::%s" repo-id rev file))
-           (description (format "%s@%s:%s"
-                                (file-name-nondirectory file)
-                                rev-display
-                                repo-id)))
-      (org-link-store-props
-       :type "orgit-file"
-       :link link
-       :description description)
-      ;; Return non-nil to indicate we handled this
-      t)))
+  (when-let* ((repo (magit-toplevel)))
+    (let ((file (or (and (derived-mode-p 'magit-blob-mode)
+                         magit-buffer-file-name)
+                    (and buffer-file-name
+                         (magit-file-relative-name))))
+          (rev (or (and (derived-mode-p 'magit-blob-mode)
+                        magit-buffer-revision)
+                   (and buffer-file-name
+                        (magit-rev-parse "HEAD")))))
+      (when (and file rev)
+        (let* ((repo-id (orgit--current-repository))
+               (rev-display (if orgit-file-abbreviate-revisions
+                                (magit-rev-abbrev rev)
+                              rev))
+               (link (format "orgit-file:%s::%s::%s" repo-id rev file))
+               (description (format "%s@%s:%s"
+                                    (file-name-nondirectory file)
+                                    rev-display
+                                    repo-id)))
+          (org-link-store-props
+           :type "orgit-file"
+           :link link
+           :description description)
+          t)))))
 
 ;;;###autoload
 (defun orgit-file-open (path)

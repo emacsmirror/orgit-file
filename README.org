@@ -1,0 +1,198 @@
+#+title: orgit-file
+#+PROPERTY: LOGGING nil
+#+OPTIONS: ^:nil
+* Link to Git file revisions from Org documents
+
+This package defines the ~orgit-file~ link type, which links to specific file
+versions in Git repositories. Use the command ~org-store-link~ in a file buffer or
+~magit-blob-mode~ buffer to store a link. Later you can insert it into an Org
+buffer using the command ~org-insert-link~.
+
+* Format
+
+The ~orgit-file~ link type takes this form:
+
+#+begin_src text
+            orgit-file:REPO::REV::FILE-PATH::SEARCH
+            orgit-file:REPO::REV::FILE-PATH ╰────┬─╯
+                      ╰┬───╯╰──┬╯╰───────┬─╯     │
+                  ╭───╴▼╶────╮ │         │       │
+                  │repository│ │         │       │
+                  ╰───△──────╯ │         │   ╔═══▼══════:OPTIONAL:═══════════╗
+                      |        │         │   ║       org search string       ║
+                      | ╭──────▼─────╮   │   ║( heading, line number, regex )║
+                      | │commit hash,│   │   ╚════════════════△══════════════╝
+                      | │branch name │   │                    |
+                      | │   or tag   │   │                    |
+                      | ╰──────△─────╯   │                    |
+                      |        | ╭───────▼─────╮              |
+                      |        | │relative path│              |
+                      |        | │to repository│              |
+                      |        | ╰───────△─────╯              |
+                      |        |         |                    |
+                      |        |         |                    |
+          ╭───────────┴─────╮╭─┴──────╮╭─┴───────────╮        |
+orgit-file:~/code/orgit-file::pef662d3::orgit-file.el╵╭───────┴───────────────╮
+orgit-file:~/code/orgit-file::pef662d3::orgit-file.el::(defun orgit-file-store
+#+end_src
+
+Where:
+- ~REPO~ identifies the repository (path or name from ~magit-repository-directories~)
+- ~REV~ is a commit hash, branch name, or tag
+- ~FILE-PATH~ is the relative path within the repository
+- ~SEARCH~ (optional) is an Org search string (heading, line number, regex)
+
+* Examples
+#+begin_src text
+[[orgit-file:~/project/::7f2667d::src/core.el]]
+[[orgit-file:~/project/::main::src/core.el]]
+[[orgit-file:~/project/::v1.0.0::src/core.el::(defun test-func]]
+[[orgit-file:my-repo::HEAD::README.org::10]]
+#+end_src
+
+Specific to this repo
+orgit-file across multiple commits
+#+begin_example
+[[orgit-file:~/CODE/0-EMACS/emacs-packages/orgit-file/::ef662d3::orgit-file.el::10]]
+[[orgit-file:~/CODE/0-EMACS/emacs-packages/orgit-file/::8a36edd::orgit-file.el]]
+[[orgit-file:~/CODE/0-EMACS/emacs-packages/orgit-file/::ef662d3::orgit-file.el]]
+#+end_example
+
+Exported links
+#+begin_src
+https://github.com/gggion/orgit-file/blob/ef662d3/orgit-file.el
+https://github.com/gggion/orgit-file/blob/8a36edd/orgit-file.el
+https://github.com/gggion/orgit-file/blob/ef662d3/orgit-file.el
+#+end_src
+
+* Storage Behavior
+
+Link creation is controlled by ~orgit-file-link-to-file-use-orgit~:
+
+- ~t~ :: Always create ~orgit-file~ links in Git repositories
+- ~create-if-interactive~ :: Create only when ~org-store-link~ called interactively
+- ~use-existing~ :: Only in ~magit-blob-mode~ and other Magit contexts
+- ~nil~ :: Never create ~orgit-file~ links (allows ~file:~ fallback)
+
+When storing links:
+- In ~magit-blob-mode~ buffers: stores link to displayed revision
+- In regular file buffers: stores link referencing ~HEAD~
+- With ~C-u~ prefix: skips ~orgit-file~ storage, falls back to ~file:~ links
+
+Revision format is controlled by ~orgit-file-abbreviate-revisions~:
+- ~t~ :: Use abbreviated hashes (7-8 characters)
+- ~nil~ :: Use full 40-character SHA-1 hashes (default, more stable)
+
+* Export
+
+When exporting Org files containing ~orgit-file~ links, the package generates web
+URLs using the remote configured with ~orgit-remote~ (defaults to "origin").
+
+URL templates are defined in ~orgit-file-export-alist~ for major Git hosting
+services:
+- GitHub
+- GitLab
+- Codeberg
+- SourceHut
+- Bitbucket
+
+** Per-Repository Configuration
+
+Override export behavior using Git variables:
+
+#+begin_src shell
+# Use different remote for public links
+git config orgit.remote upstream
+
+# Explicitly define file export URL format
+# %r = revision, %f = file path
+git config orgit.file https://git.example.com/repo/blob/%r/%f
+#+end_src
+
+** Custom Export Templates
+
+Add templates for unsupported hosting services:
+
+#+begin_src elisp
+(add-to-list 'orgit-file-export-alist
+             '("git\\.company\\.com[:/]\\(.+?\\)\\(?:\\.git\\)?$"
+               "https://git.company.com/%n/blob/%r/%f"))
+#+end_src
+
+Where:
+- ~%n~ :: Repository name (first submatch from regexp)
+- ~%r~ :: Revision (commit hash, branch, or tag)
+- ~%f~ :: File path within repository
+
+* Installation
+** Prerequisites
+Requires Emacs 29.1 or later with the following packages:
+- ~magit~ (version 4.3+)
+- ~orgit~ (version 2.0+)
+- ~org~ (version 9.7+)
+
+Verify Magit is configured and can access your Git repositories:
+
+#+begin_src emacs-lisp
+(magit-status)  ; Should open without errors
+#+end_src
+
+** Manual Installation
+Clone the repository and add to your load path:
+
+#+begin_src elisp
+(add-to-list 'load-path "/path/to/orgit-file")
+(require 'orgit-file)
+#+end_src
+
+** With straight
+#+begin_src elisp
+(use-package orgit-file
+  :straight (:host github :repo "gggion/orgit-file")
+  :after (orgit))
+#+end_src
+
+** Doom Emacs
+#+begin_src elisp
+;; packages.el
+(package! orgit-file
+  :recipe (:host github
+           :repo "gggion/orgit-file"
+           :files ("*.el")))
+
+;; config.el
+(after! orgit
+    (use-package! orgit-file))
+#+end_src
+
+* Configuration
+** Minimal Configuration
+
+#+begin_src emacs-lisp
+(use-package orgit-file
+  :ensure t
+  :after (orgit)
+  :custom
+  ;; Use abbreviated revision hashes in links
+  (orgit-file-abbreviate-revisions t)
+)
+
+#+end_src
+
+** Recommended Configuration
+
+#+begin_src emacs-lisp
+(use-package orgit-file
+  :ensure t
+  :after (orgit)
+  :custom
+  ;; Use abbreviated revision hashes in links
+  (orgit-file-abbreviate-revisions t)
+
+  ;; Create orgit-file links when storing from file buffers
+  (orgit-file-link-to-file-use-orgit 'create-if-interactive)
+
+  ;; Store repository names instead of full paths
+  ;; Requires repositories in magit-repository-directories
+  (orgit-store-repository-id t))
+#+end_src

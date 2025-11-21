@@ -53,7 +53,7 @@ Where:
 Specific to this repo
 orgit-file across multiple commits
 #+begin_example
-[[orgit-file:~/CODE/0-EMACS/emacs-packages/orgit-file/::ef662d3::orgit-file.el::10]]
+[[orgit-file:~/CODE/0-EMACS/emacs-packages/orgit-file/::ef662d3::orgit-file.el]]
 [[orgit-file:~/CODE/0-EMACS/emacs-packages/orgit-file/::8a36edd::orgit-file.el]]
 [[orgit-file:~/CODE/0-EMACS/emacs-packages/orgit-file/::ef662d3::orgit-file.el]]
 #+end_example

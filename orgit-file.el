@@ -5,7 +5,7 @@
 ;; Homepage: https://github.com/gggion/orgit-file
 ;; Keywords: hypermedia vc
 
-;; Package-Version: 0.1.0
+;; Package-Version: 0.2.0
 ;; Package-Requires: ((emacs  "29.1") (compat "30.1") (magit "4.3") (org "9.7") (orgit "2.0"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
@@ -227,8 +227,7 @@ Return nil if no region is active.
 
 Complete line selection means region starts at beginning of line
 and ends at beginning of next line (or end of buffer).  This
-matches the behavior of `evil-visual-line' and similar line-wise
-selection modes."
+matches the behavior of similar line-wise selection modes."
   (when (use-region-p)
     (let ((beg (region-beginning))
           (end (region-end)))

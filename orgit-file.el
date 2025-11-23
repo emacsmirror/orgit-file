@@ -1,7 +1,7 @@
 ;;; orgit-file.el --- Support for links to files in Git repositories  -*- lexical-binding:t -*-
 
 ;; Author: Gino Cornejo
-;; mantainer: Gino Cornejo <gggion123@gmail.com>
+;; Mantainer: Gino Cornejo <gggion123@gmail.com>
 ;; Homepage: https://github.com/gggion/orgit-file
 ;; Keywords: hypermedia vc
 

@@ -346,7 +346,8 @@ hashes; when nil, use full 40-character hashes.
 When called interactively, always attempt to store an orgit-file
 link, ignoring the `orgit-file-link-to-file-use-orgit' setting.
 This allows users to explicitly request orgit-file links even when
-automatic storage is disabled.
+automatic storage is disabled.  The link is added to
+`org-stored-links' for insertion with `org-insert-link'.
 
 When called non-interactively (from `org-store-link'), prefix
 argument behavior depends on the setting:
@@ -376,7 +377,7 @@ Return non-nil if a link was stored, nil otherwise."
                      (memq orgit-file-link-to-file-use-orgit
                            '(prefix-to-disable blob-buffers-only)))
                 nil)
-               ((eq orgit-file-link-to-file-use-orgit 'prefix-to-enable)  has-prefix)
+               ((eq orgit-file-link-to-file-use-orgit 'prefix-to-enable) has-prefix)
                ((eq orgit-file-link-to-file-use-orgit 'prefix-to-disable) t)
                ((eq orgit-file-link-to-file-use-orgit 'blob-buffers-only) in-blob-buffer)
                ;; nil: don't store
@@ -407,7 +408,9 @@ Return non-nil if a link was stored, nil otherwise."
               (org-link-store-props
                :type "orgit-file"
                :link link)
+              ;; When called interactively, add to org-stored-links
               (when called-interactively
+                (org-link--add-to-stored-links link nil)
                 (message "Stored: %s" link))
               t)))))))
 

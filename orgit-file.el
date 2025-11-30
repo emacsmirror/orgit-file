@@ -432,87 +432,89 @@ Return non-nil if link was stored."
                (t nil))))))
 
       (when should-store
-        ;; Extract file path relative to repository root
-        (let ((file (cond
-                     ;; In blob buffers, use magit-buffer-file-name
-                     ((bound-and-true-p magit-blob-mode)
-                      (magit-file-relative-name magit-buffer-file-name))
-                     ;; In regular file buffers, use buffer-file-name
-                     (buffer-file-name
-                      (magit-file-relative-name buffer-file-name))))
-              ;; Determine revision: use magit-buffer-revision in blob
-              ;; buffers, otherwise use HEAD
-              (rev (or (and (bound-and-true-p magit-blob-mode)
-                            magit-buffer-revision)
-                       (and buffer-file-name
-                            (magit-rev-parse "HEAD")))))
-          ;; Only proceed if we have both file and revision
-          (when (and file rev)
-            (let* ((repo-id (orgit--current-repository))
-                   ;; Revision for description: format based on
-                   ;; orgit-file-description-use-readable-revisions.
-                   ;; When t: tag > branch > abbreviated hash.
-                   ;; When nil: always abbreviated hash.
-                   (rev-for-link (if orgit-file-abbreviate-revisions
-                                     (magit-rev-abbrev rev)
-                                   rev))
-                   ;; Revision for description: human-readable form
-                   ;; (tag > branch > abbreviated hash)
-                   (rev-for-desc (orgit-file--format-revision-for-description rev))
-                   ;; Detect search option from active region
-                   (search-option (orgit-file--detect-search-option))
-                   ;; Variables for parsed line numbers
-                   (line-start nil)
-                   (line-end nil)
-                   ;; Formatted search description for link description
-                   (search-desc nil))
+        ;; Bind default-directory to repository root for all operations
+        ;; to ensure orgit--current-repository and magit-file-relative-name
+        ;; compute paths correctly regardless of buffer's working directory
+        (let ((default-directory repo))
+          ;; Extract file path relative to repository root
+          (let ((file (cond
+                       ;; In blob buffers, use magit-buffer-file-name
+                       ((bound-and-true-p magit-blob-mode)
+                        (magit-file-relative-name magit-buffer-file-name))
+                       ;; In regular file buffers, use buffer-file-name
+                       (buffer-file-name
+                        (magit-file-relative-name buffer-file-name))))
+                ;; Determine revision: use magit-buffer-revision in blob
+                ;; buffers, otherwise use HEAD
+                (rev (or (and (bound-and-true-p magit-blob-mode)
+                              magit-buffer-revision)
+                         (and buffer-file-name
+                              (magit-rev-parse "HEAD")))))
+            ;; Only proceed if we have both file and revision
+            (when (and file rev)
+              (let* ((repo-id (orgit--current-repository))
+                     ;; Revision for link: format based on
+                     ;; orgit-file-abbreviate-revisions.
+                     (rev-for-link (if orgit-file-abbreviate-revisions
+                                       (magit-rev-abbrev rev)
+                                     rev))
+                     ;; Revision for description: human-readable form
+                     ;; (tag > branch > abbreviated hash)
+                     (rev-for-desc (orgit-file--format-revision-for-description rev))
+                     ;; Detect search option from active region
+                     (search-option (orgit-file--detect-search-option))
+                     ;; Variables for parsed line numbers
+                     (line-start nil)
+                     (line-end nil)
+                     ;; Formatted search description for link description
+                     (search-desc nil))
 
-              ;; Parse search option to detect line numbers and format
-              ;; description. Line numbers get special formatting like
-              ;; " (line 42)" or " (lines 10-20)". Text searches get
-              ;; formatted as " (search text)".
-              (when search-option
-                (cond
-                 ;; Line range: "43-58"
-                 ((string-match "\\`\\([0-9]+\\)-\\([0-9]+\\)\\'" search-option)
-                  (setq line-start (string-to-number (match-string 1 search-option))
-                        line-end (string-to-number (match-string 2 search-option))
-                        search-desc (format " (lines %d-%d)" line-start line-end)))
-                 ;; Single line: "43"
-                 ((string-match "\\`\\([0-9]+\\)\\'" search-option)
-                  (setq line-start (string-to-number (match-string 1 search-option))
-                        line-end line-start
-                        search-desc (format " (line %d)" line-start)))
-                 ;; Text search: anything else
-                 (t
-                  (setq search-desc (format " (%s)" search-option)))))
+                ;; Parse search option to detect line numbers and format
+                ;; description. Line numbers get special formatting like
+                ;; " (line 42)" or " (lines 10-20)". Text searches get
+                ;; formatted as " (search text)".
+                (when search-option
+                  (cond
+                   ;; Line range: "43-58"
+                   ((string-match "\\`\\([0-9]+\\)-\\([0-9]+\\)\\'" search-option)
+                    (setq line-start (string-to-number (match-string 1 search-option))
+                          line-end (string-to-number (match-string 2 search-option))
+                          search-desc (format " (lines %d-%d)" line-start line-end)))
+                   ;; Single line: "43"
+                   ((string-match "\\`\\([0-9]+\\)\\'" search-option)
+                    (setq line-start (string-to-number (match-string 1 search-option))
+                          line-end line-start
+                          search-desc (format " (line %d)" line-start)))
+                   ;; Text search: anything else
+                   (t
+                    (setq search-desc (format " (%s)" search-option)))))
 
-              ;; Construct the orgit-file link
-              (let ((link (if search-option
-                              (format "orgit-file:%s::%s::%s::%s"
-                                      repo-id rev-for-link file search-option)
-                            (format "orgit-file:%s::%s::%s"
-                                    repo-id rev-for-link file))))
-                ;; Store link properties for org-mode
-                (org-link-store-props
-                 :type "orgit-file"
-                 :link link
-                 ;; Generate description using two-pass format-spec.
-                 ;; First pass: magit-rev-format expands git-show specs.
-                 ;; Second pass: format-spec expands our custom specs.
-                 :description (format-spec
-                               (magit-rev-format orgit-file-description-format rev)
-                               `((?N . ,repo-id)
-                                 (?R . ,rev-for-desc)
-                                 (?F . ,file)
-                                 (?S . ,(or search-desc "")))))
-                ;; When called interactively, add to org-stored-links
-                ;; so user can insert with org-insert-link
-                (when called-interactively
-                  (org-link--add-to-stored-links link nil)
-                  (message "Stored: %s" link))
-                ;; Return non-nil to indicate success
-                t))))))))
+                ;; Construct the orgit-file link
+                (let ((link (if search-option
+                                (format "orgit-file:%s::%s::%s::%s"
+                                        repo-id rev-for-link file search-option)
+                              (format "orgit-file:%s::%s::%s"
+                                      repo-id rev-for-link file))))
+                  ;; Store link properties for org-mode
+                  (org-link-store-props
+                   :type "orgit-file"
+                   :link link
+                   ;; Generate description using two-pass format-spec.
+                   ;; First pass: magit-rev-format expands git-show specs.
+                   ;; Second pass: format-spec expands our custom specs.
+                   :description (format-spec
+                                 (magit-rev-format orgit-file-description-format rev)
+                                 `((?N . ,repo-id)
+                                   (?R . ,rev-for-desc)
+                                   (?F . ,file)
+                                   (?S . ,(or search-desc "")))))
+                  ;; When called interactively, add to org-stored-links
+                  ;; so user can insert with org-insert-link
+                  (when called-interactively
+                    (org-link--add-to-stored-links link nil)
+                    (message "Stored: %s" link))
+                  ;; Return non-nil to indicate success
+                  t)))))))))
 
 ;;;###autoload
 (defun orgit-file-open (path)

@@ -694,6 +694,7 @@ were contributions, feedback, ideas or criticism was made, it all helps the
 learning process and makes this better because of it.
 
 + Ideas and/or user feedback ::  CandyCorvid, Alfamadorian.
++ Code Contributions :: [[https://github.com/danielfleischer][Daniel Fleischer]]. 
 
 
 * License

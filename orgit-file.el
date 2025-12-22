@@ -5,7 +5,7 @@
 ;; Homepage: https://github.com/gggion/orgit-file
 ;; Keywords: hypermedia vc
 
-;; Package-Version: 0.3.0
+;; Package-Version: 0.4.0
 ;; Package-Requires: ((emacs  "29.1") (compat "30.1") (magit "4.3") (org "9.7") (orgit "2.0"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later

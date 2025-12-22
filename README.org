@@ -3,9 +3,10 @@
 #+TEXINFO_DIR_CATEGORY: Emacs misc features
 #+TEXINFO_DIR_TITLE: Orgit-File: (orgit-file).
 #+TEXINFO_DIR_DESC: Link to specific file revisions in Git repositories
+#+html: <a href="https://melpa.org/#/orgit-file"><img alt="MELPA" src="https://melpa.org/packages/orgit-file-badge.svg"/></a>
 #+begin_quote
 [!IMPORTANT]
-Version 0.3.0 Released!
+Now on MELPA
 #+end_quote
 
 Orgit-file provides revision-aware Org links to files in Git repositories.
@@ -92,25 +93,23 @@ Verify Magit is configured and can access your Git repositories:
 (require 'orgit-file)
 #+end_src
 
-- With straight ::
+- With straight (MELPA)::
 #+begin_src elisp
 (use-package orgit-file
-:straight (:host github :repo "gggion/orgit-file")
-:after (orgit))
+  :ensure t
+  :after (orgit))
 #+end_src
 
-- Doom Emacs :: 
+- Doom Emacs (MELPA):: 
 
 #+begin_src elisp
 ;; packages.el
-(package! orgit-file
-:recipe (:host github
-:repo "gggion/orgit-file"
-:files ("*.el")))
+(package! orgit-file)
 
 ;; config.el
-(after! orgit
-(use-package! orgit-file))
+(use-package! orgit-file
+  :ensure t
+  :after (orgit))
 #+end_src
 
 * Quick start
